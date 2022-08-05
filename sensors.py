@@ -2,6 +2,9 @@ import networkx as nx
 import random, os, time
 import matplotlib.pyplot as plt
 from itertools import count
+import json
+import socket
+import sys
 #--------------------
 
 def draw(G, dynamic = False):
@@ -50,12 +53,34 @@ def update_temps(G):
         G.nodes[n]["temperature"] = new_temp
     return G
 
-def run(sleep_interval = 30):
-    G = create_graph(10)
-    running = True
-    while(running):
-        G = update_temps(G)
-        draw(G, True)
-        #time.sleep(sleep_interval)
+def format_temperatures_str(temperatures):
+   new_str = temperatures.replace("{", "")
+   new_str = new_str.replace("}", "")
+   new_str = new_str.replace("\"", "")
+   new_str = new_str.replace(" ", "")
+   new_str+='\n'
+   return new_str
 
-run()
+def run(sleep_interval = 30, host="127.0.0.1", port=9999):
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind((host, port))
+        s.listen()
+        conn, addr = s.accept()
+        with conn:
+            G = create_graph(10)
+            running = True
+            while(running):
+                G = update_temps(G)
+                #draw(G, True)
+                current_temperatures = nx.get_node_attributes(G, "temperature")
+                str_to_send = format_temperatures_str(json.dumps(current_temperatures))
+                b = bytes(str_to_send, 'utf-8')
+                print(str_to_send)
+                try:
+                    conn.sendall(b)
+                except Exception:
+                    pass
+                time.sleep(sleep_interval)
+    
+
+run(sleep_interval=3)
