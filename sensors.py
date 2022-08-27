@@ -83,4 +83,4 @@ def run(sleep_interval = 30, host="127.0.0.1", port=9999):
                 time.sleep(sleep_interval)
     
 
-run(sleep_interval=3)
+run(sleep_interval=20)
