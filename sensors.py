@@ -5,6 +5,8 @@ from itertools import count
 import json
 import socket
 import sys
+
+PROB_FIRE = 0.7
 #--------------------
 
 def draw(G, dynamic = False):
@@ -33,7 +35,7 @@ def create_graph(nodes_num, edge_prop=None, seed=None):
     print("Creating graph with properties: with {} nodes and edge probability of {}" .format(str(nodes_num), str(edge_prop)))
     G = nx.Graph()
     for i in range (0, nodes_num):
-        G.add_node(i, temperature = 0)
+        G.add_node(i, temperature = 30)
     for i in range(0, nodes_num):
         if edge_prop:
             for j in range(i+i, nodes_num):
@@ -47,11 +49,25 @@ def create_graph(nodes_num, edge_prop=None, seed=None):
                 G.add_edge(i, target, weight=abs(target - i))
     return G
 
-def update_temps(G):
-    for n in G.nodes:
-        new_temp = random.randint(18, 50)
-        G.nodes[n]["temperature"] = new_temp
-    return G
+def update_temps(G, node_list):
+    n_list = list()
+    for node in node_list:        
+        if node["temperature"] > 40: #fire
+            for neig in G.neighbors(node):
+                if neig["temperature"] < 40:
+                    prop = random.uniform(0,1)
+                    if prop > PROB_FIRE:
+                        neig["temperature"] = random.uniform(41,55)
+        else:
+            prop = random.uniform(0,1)
+            if prop > PROB_FIRE:
+                node["temperature"] = random.uniform(41,55)
+                n_list.append(node)
+
+    # for n in G.nodes:
+    #     new_temp = random.randint(18, 50)
+        # G.nodes[n]["temperature"] = new_temp
+    return G, n_list
 
 def format_temperatures_str(temperatures):
    new_str = temperatures.replace("{", "")
@@ -69,9 +85,10 @@ def run(sleep_interval = 30, host="127.0.0.1", port=9999):
         with conn:
             G = create_graph(10)
             running = True
+            n_list = [0]
             while(running):
-                G = update_temps(G)
-                #draw(G, True)
+                G, n_list = update_temps(G, n_list)
+                draw(G, True)
                 current_temperatures = nx.get_node_attributes(G, "temperature")
                 str_to_send = format_temperatures_str(json.dumps(current_temperatures))
                 b = bytes(str_to_send, 'utf-8')
