@@ -6,7 +6,7 @@ import json
 import socket
 import sys
 
-PROB_FIRE = 0.7
+PROB_FIRE = 0.4
 #--------------------
 
 def draw(G, dynamic = False):
@@ -47,26 +47,28 @@ def create_graph(nodes_num, edge_prop=None, seed=None):
             for j in range(0,3):
                 target = random.randint(i+1,nodes_num)
                 G.add_edge(i, target, weight=abs(target - i))
+    for n in G.nodes:
+        G.nodes[n]["temperature"] = 30
     return G
 
 def update_temps(G, node_list):
     n_list = list()
     for node in node_list:        
-        if node["temperature"] > 40: #fire
+        if G.nodes[node]["temperature"] > 40: #fire
             for neig in G.neighbors(node):
-                if neig["temperature"] < 40:
+                if G.nodes[neig]["temperature"] < 40:
                     prop = random.uniform(0,1)
                     if prop > PROB_FIRE:
-                        neig["temperature"] = random.uniform(41,55)
+                        G.nodes[neig]["temperature"] = random.uniform(41,55)
+                        n_list.append(neig)
         else:
             prop = random.uniform(0,1)
             if prop > PROB_FIRE:
-                node["temperature"] = random.uniform(41,55)
+                print(prop)
+                G.nodes[node]["temperature"] = random.uniform(41,55)
                 n_list.append(node)
 
-    # for n in G.nodes:
-    #     new_temp = random.randint(18, 50)
-        # G.nodes[n]["temperature"] = new_temp
+
     return G, n_list
 
 def format_temperatures_str(temperatures):
@@ -100,4 +102,4 @@ def run(sleep_interval = 30, host="127.0.0.1", port=9999):
                 time.sleep(sleep_interval)
     
 
-run(sleep_interval=20)
+run(sleep_interval=30)
